@@ -63,6 +63,5 @@ public class TournamentCreateRequest {
 
     private LocalDateTime endDate;
 
-    @NotNull(message = "L'identifiant de l'organisateur est obligatoire")
     private UUID organizerId;
 }
