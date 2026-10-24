@@ -68,6 +68,8 @@ public class SecurityConfig {
                             .hasAnyRole("ORGANIZER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/tournaments/**", "/api/tournament-groups/**", "/api/matches/**")
                             .hasAnyRole("ORGANIZER", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/tournaments/**", "/api/tournament-groups/**", "/api/matches/**")
+                            .hasAnyRole("ORGANIZER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/tournaments/**", "/api/tournament-groups/**", "/api/matches/**")
                             .hasAnyRole("ORGANIZER", "ADMIN")
 
