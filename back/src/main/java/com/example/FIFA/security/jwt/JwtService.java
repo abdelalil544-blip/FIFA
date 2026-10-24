@@ -30,6 +30,14 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    public String generateToken(com.example.FIFA.security.user.CustomUserDetails userDetails) {
+        String role = userDetails.getAuthorities().stream()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .findFirst()
+                .orElse("ROLE_PLAYER");
+        return generateToken(userDetails, userDetails.getId(), role);
+    }
+
     public String generateToken(UserDetails userDetails, UUID userId, String role) {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("userId", userId != null ? userId.toString() : null);
