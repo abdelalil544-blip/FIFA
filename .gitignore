@@ -1,0 +1,34 @@
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Build Artifacts
+**/target/
+**/build/
+**/dist/
+**/.apt_generated
+**/.classpath
+**/.factorypath
+**/.project
+**/.settings
+**/.springBeans
+**/.sts4-cache
+
+# Maven Wrapper binaries
+**/.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+**/*.log
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Frontend
+**/node_modules/
+**/.npm/
+**/.env.local
