@@ -13,7 +13,6 @@ import com.example.FIFA.tournament.enums.TournamentFormat;
 import com.example.FIFA.tournament.enums.TournamentStatus;
 import com.example.FIFA.tournament.mapper.TournamentMapper;
 import com.example.FIFA.tournament.repository.TournamentRepository;
-import com.example.FIFA.tournament.repository.TournamentSpecification;
 import com.example.FIFA.user.entity.User;
 import com.example.FIFA.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +39,7 @@ public class TournamentService {
     @Transactional
     public TournamentResponse createTournament(TournamentCreateRequest request, CustomUserDetails currentUser) {
         if (currentUser == null) {
-            throw new AccessDeniedException("Authentification requise pour créer un tournoi.");
+            throw new AccessDeniedException("Authentication is required to create a tournament.");
         }
 
         validateDates(request.getRegistrationStart(), request.getRegistrationEnd(), request.getStartDate(),
@@ -53,10 +52,10 @@ public class TournamentService {
         if (isAdmin && request.getOrganizerId() != null) {
             organizer = userRepository.findById(request.getOrganizerId())
                     .orElseThrow(() -> new ResourceNotFoundException(
-                            "Organisateur introuvable avec l'id : " + request.getOrganizerId()));
+                            "Organizer not found with id: " + request.getOrganizerId()));
         } else {
             organizer = userRepository.findById(currentUser.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Utilisateur authentifié introuvable en base."));
+                    .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found in the database."));
         }
 
         Tournament tournament = tournamentMapper.toEntity(request);
@@ -66,7 +65,7 @@ public class TournamentService {
         }
 
         Tournament saved = tournamentRepository.save(tournament);
-        log.info("Tournoi '{}' (ID: {}) créé avec succès par l'utilisateur '{}'", saved.getName(), saved.getId(),
+        log.info("Tournament '{}' (ID: {}) created successfully by user '{}'", saved.getName(), saved.getId(),
                 organizer.getUsername());
         return tournamentMapper.toResponse(saved);
     }
@@ -85,11 +84,55 @@ public class TournamentService {
             UUID organizerId,
             String search,
             Pageable pageable) {
-        Specification<Tournament> spec = TournamentSpecification.withFilters(status, format, platform, organizerId,
-                search);
+
+        Specification<Tournament> spec = buildTournamentSpecification(status, format, platform, organizerId, search);
         Page<Tournament> tournamentPage = tournamentRepository.findAll(spec, pageable);
         Page<TournamentResponse> responsePage = tournamentPage.map(tournamentMapper::toResponse);
         return PageResponse.from(responsePage);
+    }
+
+    private Specification<Tournament> buildTournamentSpecification(
+            TournamentStatus status,
+            TournamentFormat format,
+            Platform platform,
+            UUID organizerId,
+            String search) {
+
+        return Specification.where(hasStatus(status))
+                .and(hasFormat(format))
+                .and(hasPlatform(platform))
+                .and(hasOrganizer(organizerId))
+                .and(containsSearch(search));
+    }
+
+    private Specification<Tournament> hasStatus(TournamentStatus status) {
+        return (root, query, cb) -> status == null ? null : cb.equal(root.get("status"), status);
+    }
+
+    private Specification<Tournament> hasFormat(TournamentFormat format) {
+        return (root, query, cb) -> format == null ? null : cb.equal(root.get("format"), format);
+    }
+
+    private Specification<Tournament> hasPlatform(Platform platform) {
+        return (root, query, cb) -> platform == null ? null : cb.equal(root.get("platform"), platform);
+    }
+
+    private Specification<Tournament> hasOrganizer(UUID organizerId) {
+        return (root, query, cb) -> organizerId == null ? null : cb.equal(root.get("organizer").get("id"), organizerId);
+    }
+
+    private Specification<Tournament> containsSearch(String search) {
+        return (root, query, cb) -> {
+            if (search == null || search.trim().isEmpty()) {
+                return null;
+            }
+
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            return cb.or(
+                    cb.like(cb.lower(root.get("name")), pattern),
+                    cb.like(cb.lower(root.get("gameTitle")), pattern)
+            );
+        };
     }
 
     @Transactional
@@ -108,7 +151,7 @@ public class TournamentService {
                     || request.getPlayersPerGroup() != null || request.getQualifiersPerGroup() != null
                     || request.getRegistrationStart() != null || request.getRegistrationEnd() != null) {
                 throw new BusinessException(
-                        "Impossible de modifier les paramètres structurels d'un tournoi en cours, complété ou annulé.");
+                        "It is not possible to modify the structural parameters of a tournament that is in progress, completed, or cancelled.");
             }
         }
 
@@ -130,7 +173,7 @@ public class TournamentService {
 
         tournamentMapper.updateEntityFromRequest(request, tournament);
         Tournament updated = tournamentRepository.save(tournament);
-        log.info("Tournoi '{}' (ID: {}) mis à jour avec succès par '{}'", updated.getName(), updated.getId(),
+        log.info("Tournament '{}' (ID: {}) updated successfully by '{}'", updated.getName(), updated.getId(),
                 currentUser.getUsername());
         return tournamentMapper.toResponse(updated);
     }
@@ -141,21 +184,21 @@ public class TournamentService {
         verifyOwnershipOrAdmin(tournament, currentUser);
 
         if (tournament.getStatus() == TournamentStatus.REGISTRATION_OPEN) {
-            throw new BusinessException("Les inscriptions sont déjà ouvertes pour ce tournoi.");
+            throw new BusinessException("Registrations are already open for this tournament.");
         }
         if (tournament.getStatus() != TournamentStatus.DRAFT
                 && tournament.getStatus() != TournamentStatus.REGISTRATION_CLOSED) {
             throw new BusinessException(
-                    "Impossible d'ouvrir les inscriptions pour un tournoi au statut : " + tournament.getStatus());
+                    "It is not possible to open registrations for a tournament in status: " + tournament.getStatus());
         }
         if (tournament.getStartDate() != null && tournament.getStartDate().isBefore(LocalDateTime.now())) {
             throw new BusinessException(
-                    "Impossible d'ouvrir les inscriptions : la date de début du tournoi est déjà passée.");
+                    "It is not possible to open registrations because the tournament start date has already passed.");
         }
 
         tournament.setStatus(TournamentStatus.REGISTRATION_OPEN);
         Tournament saved = tournamentRepository.save(tournament);
-        log.info("Inscriptions ouvertes pour le tournoi '{}' (ID: {})", saved.getName(), saved.getId());
+        log.info("Registrations opened for tournament '{}' (ID: {})", saved.getName(), saved.getId());
         return tournamentMapper.toResponse(saved);
     }
 
@@ -165,17 +208,17 @@ public class TournamentService {
         verifyOwnershipOrAdmin(tournament, currentUser);
 
         if (tournament.getStatus() == TournamentStatus.REGISTRATION_CLOSED) {
-            throw new BusinessException("Les inscriptions sont déjà fermées pour ce tournoi.");
+            throw new BusinessException("Registrations are already closed for this tournament.");
         }
         if (tournament.getStatus() != TournamentStatus.REGISTRATION_OPEN) {
             throw new BusinessException(
-                    "Impossible de fermer les inscriptions : le tournoi n'a pas les inscriptions ouvertes (statut actuel : "
+                    "It is not possible to close registrations because the tournament is not currently accepting registrations (current status: "
                             + tournament.getStatus() + ").");
         }
 
         tournament.setStatus(TournamentStatus.REGISTRATION_CLOSED);
         Tournament saved = tournamentRepository.save(tournament);
-        log.info("Inscriptions fermées pour le tournoi '{}' (ID: {})", saved.getName(), saved.getId());
+        log.info("Registrations closed for tournament '{}' (ID: {})", saved.getName(), saved.getId());
         return tournamentMapper.toResponse(saved);
     }
 
@@ -187,11 +230,11 @@ public class TournamentService {
         if (tournament.getStatus() == TournamentStatus.GROUP_STAGE
                 || tournament.getStatus() == TournamentStatus.PLAYOFFS
                 || tournament.getStatus() == TournamentStatus.COMPLETED) {
-            throw new BusinessException("Impossible de supprimer un tournoi en cours ou terminé.");
+            throw new BusinessException("It is not possible to delete a tournament that is in progress or completed.");
         }
 
         tournamentRepository.delete(tournament);
-        log.info("Tournoi '{}' (ID: {}) supprimé par '{}'", tournament.getName(), tournament.getId(),
+        log.info("Tournament '{}' (ID: {}) deleted by '{}'", tournament.getName(), tournament.getId(),
                 currentUser.getUsername());
     }
 
@@ -202,7 +245,7 @@ public class TournamentService {
 
     public void verifyOwnershipOrAdmin(Tournament tournament, CustomUserDetails currentUser) {
         if (currentUser == null) {
-            throw new AccessDeniedException("Authentification requise pour effectuer cette action.");
+            throw new AccessDeniedException("Authentication is required to perform this action.");
         }
         boolean isAdmin = isAdmin(currentUser);
         boolean isOwner = tournament.getOrganizer() != null
@@ -210,7 +253,7 @@ public class TournamentService {
 
         if (!isAdmin && !isOwner) {
             throw new AccessDeniedException(
-                    "Accès refusé : vous devez être l'organisateur de ce tournoi ou un administrateur.");
+                    "Access denied: you must be the organizer of this tournament or an administrator.");
         }
     }
 
@@ -221,14 +264,14 @@ public class TournamentService {
 
     private void validateDates(LocalDateTime regStart, LocalDateTime regEnd, LocalDateTime start, LocalDateTime end) {
         if (regStart != null && regEnd != null && regStart.isAfter(regEnd)) {
-            throw new BusinessException("La date de début des inscriptions doit être antérieure à la date de fin.");
+            throw new BusinessException("The registration start date must be before the registration end date.");
         }
         if (regEnd != null && start != null && regEnd.isAfter(start)) {
             throw new BusinessException(
-                    "La date de fin des inscriptions doit être antérieure ou égale à la date de début du tournoi.");
+                    "The registration end date must be before or equal to the tournament start date.");
         }
         if (start != null && end != null && start.isAfter(end)) {
-            throw new BusinessException("La date de début du tournoi doit être antérieure à la date de fin.");
+            throw new BusinessException("The tournament start date must be before the end date.");
         }
     }
 
@@ -237,18 +280,18 @@ public class TournamentService {
         if (format == TournamentFormat.GROUPS_AND_KNOCKOUT || format == TournamentFormat.GROUPS_ONLY) {
             if (playersPerGroup == null || playersPerGroup < 2) {
                 throw new BusinessException(
-                        "Le nombre de joueurs par groupe doit être d'au moins 2 pour les formats comprenant des poules.");
+                        "The number of players per group must be at least 2 for formats that include groups.");
             }
             if (qualifiersPerGroup == null || qualifiersPerGroup < 1) {
-                throw new BusinessException("Le nombre de qualifiés par groupe doit être d'au moins 1.");
+                throw new BusinessException("The number of qualifiers per group must be at least 1.");
             }
             if (qualifiersPerGroup >= playersPerGroup) {
                 throw new BusinessException(
-                        "Le nombre de qualifiés par groupe doit être strictement inférieur au nombre de joueurs par groupe.");
+                        "The number of qualifiers per group must be strictly lower than the number of players per group.");
             }
             if (maxPlayers != null && maxPlayers < playersPerGroup) {
                 throw new BusinessException(
-                        "Le nombre maximum de joueurs doit être supérieur ou égal au nombre de joueurs par groupe.");
+                        "The maximum number of players must be greater than or equal to the number of players per group.");
             }
         }
     }
