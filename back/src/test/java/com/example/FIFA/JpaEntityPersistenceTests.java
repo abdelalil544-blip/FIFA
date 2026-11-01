@@ -1,5 +1,6 @@
 package com.example.FIFA;
 
+import com.example.FIFA.match.dto.MatchScheduleRequest;
 import com.example.FIFA.match.entity.Match;
 import com.example.FIFA.match.entity.MatchResultHistory;
 import com.example.FIFA.match.enums.MatchStage;
@@ -7,13 +8,16 @@ import com.example.FIFA.match.enums.MatchStatus;
 import com.example.FIFA.match.enums.NextMatchSlot;
 import com.example.FIFA.match.repository.MatchRepository;
 import com.example.FIFA.match.repository.MatchResultHistoryRepository;
+import com.example.FIFA.match.service.MatchService;
 import com.example.FIFA.player.entity.Player;
 import com.example.FIFA.player.enums.Platform;
 import com.example.FIFA.player.repository.PlayerRepository;
 import com.example.FIFA.registration.entity.Registration;
 import com.example.FIFA.registration.enums.RegistrationStatus;
 import com.example.FIFA.registration.repository.RegistrationRepository;
+import com.example.FIFA.security.user.CustomUserDetails;
 import com.example.FIFA.tournament.entity.Tournament;
+import com.example.FIFA.tournament.enums.RoundRobinFormat;
 import com.example.FIFA.tournament.enums.TournamentFormat;
 import com.example.FIFA.tournament.enums.TournamentStatus;
 import com.example.FIFA.tournament.repository.TournamentRepository;
@@ -32,6 +36,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -63,6 +68,9 @@ class JpaEntityPersistenceTests {
 
     @Autowired
     private MatchResultHistoryRepository matchResultHistoryRepository;
+
+    @Autowired
+    private MatchService matchService;
 
     @Test
     @DisplayName("Devrait persister un User et son profil Player associé")
@@ -330,5 +338,99 @@ class JpaEntityPersistenceTests {
 
         assertThatThrownBy(() -> groupMemberRepository.saveAndFlush(illegalSecondGroupMember))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("Should generate a valid single round robin and allow scheduling")
+    void shouldGenerateSingleRoundRobinMatchesAndScheduleThem() {
+        User organizer = userRepository.saveAndFlush(User.builder()
+                .username("orga_rr_single")
+                .email("orga_rr_single@fifa.com")
+                .password("pwd")
+                .role(UserRole.ORGANIZER)
+                .build());
+
+        Tournament tournament = tournamentRepository.saveAndFlush(Tournament.builder()
+                .name("Single Round Robin Test")
+                .format(TournamentFormat.GROUPS_AND_KNOCKOUT)
+                .roundRobinFormat(RoundRobinFormat.SINGLE_ROUND_ROBIN)
+                .status(TournamentStatus.GROUP_STAGE)
+                .maxPlayers(6)
+                .playersPerGroup(3)
+                .registrationStart(LocalDateTime.now().minusDays(10))
+                .registrationEnd(LocalDateTime.now().minusDays(1))
+                .startDate(LocalDateTime.now().plusDays(1))
+                .organizer(organizer)
+                .build());
+
+        Player p1 = playerRepository.saveAndFlush(Player.builder().user(userRepository.saveAndFlush(User.builder().username("rr_p1").email("rrp1@fifa.com").password("pwd").role(UserRole.PLAYER).build())).gamertag("P1").platform(Platform.PS5).build());
+        Player p2 = playerRepository.saveAndFlush(Player.builder().user(userRepository.saveAndFlush(User.builder().username("rr_p2").email("rrp2@fifa.com").password("pwd").role(UserRole.PLAYER).build())).gamertag("P2").platform(Platform.PS5).build());
+        Player p3 = playerRepository.saveAndFlush(Player.builder().user(userRepository.saveAndFlush(User.builder().username("rr_p3").email("rrp3@fifa.com").password("pwd").role(UserRole.PLAYER).build())).gamertag("P3").platform(Platform.PS5).build());
+
+        TournamentGroup group = tournamentGroupRepository.saveAndFlush(TournamentGroup.builder()
+                .tournament(tournament)
+                .name("Group A")
+                .position(1)
+                .build());
+
+        groupMemberRepository.saveAndFlush(GroupMember.builder().tournament(tournament).group(group).player(p1).seed(1).joinedAt(LocalDateTime.now()).build());
+        groupMemberRepository.saveAndFlush(GroupMember.builder().tournament(tournament).group(group).player(p2).seed(2).joinedAt(LocalDateTime.now()).build());
+        groupMemberRepository.saveAndFlush(GroupMember.builder().tournament(tournament).group(group).player(p3).seed(3).joinedAt(LocalDateTime.now()).build());
+
+        CustomUserDetails organizerDetails = new CustomUserDetails(organizer);
+        List<Match> matches = matchService.generateGroupMatches(tournament.getId(), organizerDetails);
+
+        assertThat(matches).hasSize(3);
+        assertThat(matches.stream().map(Match::getRoundNumber).distinct()).hasSize(3);
+
+        LocalDateTime scheduledTime = LocalDateTime.now().plusDays(3).withHour(18).withMinute(0);
+        Match scheduledMatch = matchService.scheduleMatch(matches.get(0).getId(), MatchScheduleRequest.builder().scheduledAt(scheduledTime).build(), organizerDetails);
+        assertThat(scheduledMatch.getScheduledAt()).isEqualTo(scheduledTime);
+    }
+
+    @Test
+    @DisplayName("Should generate a double round robin when configured")
+    void shouldGenerateDoubleRoundRobinMatchesWhenConfigured() {
+        User organizer = userRepository.saveAndFlush(User.builder()
+                .username("orga_rr_double")
+                .email("orga_rr_double@fifa.com")
+                .password("pwd")
+                .role(UserRole.ORGANIZER)
+                .build());
+
+        Tournament tournament = tournamentRepository.saveAndFlush(Tournament.builder()
+                .name("Double Round Robin Test")
+                .format(TournamentFormat.GROUPS_AND_KNOCKOUT)
+                .roundRobinFormat(RoundRobinFormat.DOUBLE_ROUND_ROBIN)
+                .status(TournamentStatus.GROUP_STAGE)
+                .maxPlayers(12)
+                .playersPerGroup(4)
+                .registrationStart(LocalDateTime.now().minusDays(10))
+                .registrationEnd(LocalDateTime.now().minusDays(1))
+                .startDate(LocalDateTime.now().plusDays(1))
+                .organizer(organizer)
+                .build());
+
+        Player p1 = playerRepository.saveAndFlush(Player.builder().user(userRepository.saveAndFlush(User.builder().username("rrd_p1").email("rrdp1@fifa.com").password("pwd").role(UserRole.PLAYER).build())).gamertag("D1").platform(Platform.PS5).build());
+        Player p2 = playerRepository.saveAndFlush(Player.builder().user(userRepository.saveAndFlush(User.builder().username("rrd_p2").email("rrdp2@fifa.com").password("pwd").role(UserRole.PLAYER).build())).gamertag("D2").platform(Platform.PS5).build());
+        Player p3 = playerRepository.saveAndFlush(Player.builder().user(userRepository.saveAndFlush(User.builder().username("rrd_p3").email("rrdp3@fifa.com").password("pwd").role(UserRole.PLAYER).build())).gamertag("D3").platform(Platform.PS5).build());
+        Player p4 = playerRepository.saveAndFlush(Player.builder().user(userRepository.saveAndFlush(User.builder().username("rrd_p4").email("rrdp4@fifa.com").password("pwd").role(UserRole.PLAYER).build())).gamertag("D4").platform(Platform.PS5).build());
+
+        TournamentGroup group = tournamentGroupRepository.saveAndFlush(TournamentGroup.builder()
+                .tournament(tournament)
+                .name("Group A")
+                .position(1)
+                .build());
+
+        groupMemberRepository.saveAndFlush(GroupMember.builder().tournament(tournament).group(group).player(p1).seed(1).joinedAt(LocalDateTime.now()).build());
+        groupMemberRepository.saveAndFlush(GroupMember.builder().tournament(tournament).group(group).player(p2).seed(2).joinedAt(LocalDateTime.now()).build());
+        groupMemberRepository.saveAndFlush(GroupMember.builder().tournament(tournament).group(group).player(p3).seed(3).joinedAt(LocalDateTime.now()).build());
+        groupMemberRepository.saveAndFlush(GroupMember.builder().tournament(tournament).group(group).player(p4).seed(4).joinedAt(LocalDateTime.now()).build());
+
+        CustomUserDetails organizerDetails = new CustomUserDetails(organizer);
+        List<Match> matches = matchService.generateGroupMatches(tournament.getId(), organizerDetails);
+
+        assertThat(matches).hasSize(12);
+        assertThat(matches.stream().map(Match::getRoundNumber).distinct()).hasSize(6);
     }
 }

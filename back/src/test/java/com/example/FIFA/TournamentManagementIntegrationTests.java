@@ -227,7 +227,7 @@ class TournamentManagementIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("La date de début des inscriptions doit être antérieure à la date de fin."));
+                .andExpect(jsonPath("$.message").value("The registration start date must be before the registration end date."));
     }
 
     @Test
@@ -249,7 +249,7 @@ class TournamentManagementIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Le nombre de qualifiés par groupe doit être strictement inférieur au nombre de joueurs par groupe."));
+                .andExpect(jsonPath("$.message").value("The number of qualifiers per group must be strictly lower than the number of players per group."));
     }
 
     @Test
@@ -323,7 +323,7 @@ class TournamentManagementIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateReq)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Accès refusé : vous devez être l'organisateur de ce tournoi ou un administrateur."));
+                .andExpect(jsonPath("$.message").value("Access denied: you must be the organizer of this tournament or an administrator."));
     }
 
     @Test
@@ -358,7 +358,7 @@ class TournamentManagementIntegrationTests {
         mockMvc.perform(patch("/api/tournaments/{id}/open-registrations", tournament.getId())
                         .header("Authorization", "Bearer " + tokenOrganizer1))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Les inscriptions sont déjà ouvertes pour ce tournoi."));
+                .andExpect(jsonPath("$.message").value("Registrations are already open for this tournament."));
 
         // 3. Fermer les inscriptions
         mockMvc.perform(patch("/api/tournaments/{id}/close-registrations", tournament.getId())
@@ -370,7 +370,7 @@ class TournamentManagementIntegrationTests {
         mockMvc.perform(patch("/api/tournaments/{id}/close-registrations", tournament.getId())
                         .header("Authorization", "Bearer " + tokenOrganizer1))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Les inscriptions sont déjà fermées pour ce tournoi."));
+                .andExpect(jsonPath("$.message").value("Registrations are already closed for this tournament."));
     }
 
     @Test
@@ -381,7 +381,7 @@ class TournamentManagementIntegrationTests {
         mockMvc.perform(patch("/api/tournaments/{id}/open-registrations", tournament.getId())
                         .header("Authorization", "Bearer " + tokenOrganizer2))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Accès refusé : vous devez être l'organisateur de ce tournoi ou un administrateur."));
+                .andExpect(jsonPath("$.message").value("Access denied: you must be the organizer of this tournament or an administrator."));
     }
 
     @Test
