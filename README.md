@@ -14,6 +14,7 @@
 - **Inscriptions des joueurs** : Soumission et révision par l'organisateur (`PENDING`, `CONFIRMED`, `REJECTED`, `WITHDRAWN`).
 - **Phases de groupes** : Génération des poules avec contrainte d'unicité stricte empêchant un joueur d'appartenir à plus d'un groupe par tournoi.
 - **Matchs & Playoffs** : Matchs de groupes et arbre éliminatoire (`ROUND_OF_32` à `FINAL`), scores, forfaits et qualification automatique vers le match suivant.
+- **Résultats & validation** : Soumission de score, confirmation par l’adversaire, contestation, résolution d’un désaccord, historique persistant et gestion des forfaits.
 - **Traçabilité & Historique** : Journalisation complète des modifications de scores (`MatchResultHistory`).
 - **Architecture DTO & MapStruct** : Séparation stricte entre entités de persistance et modèles d'échange DTO, avec validation Bean Validation (`@Valid`) au niveau des DTOs.
 
