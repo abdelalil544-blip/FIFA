@@ -1,11 +1,13 @@
 package com.example.FIFA.match.entity;
 
+import com.example.FIFA.match.enums.MatchResultSource;
 import com.example.FIFA.match.enums.MatchStage;
 import com.example.FIFA.match.enums.MatchStatus;
 import com.example.FIFA.match.enums.NextMatchSlot;
 import com.example.FIFA.player.entity.Player;
 import com.example.FIFA.tournament.entity.Tournament;
 import com.example.FIFA.tournamentgroup.entity.TournamentGroup;
+import com.example.FIFA.user.entity.User;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -94,6 +96,34 @@ public class Match {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 25)
     private MatchStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "submitted_by_id")
+    private User submittedBy;
+
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "confirmed_by_id")
+    private User confirmedBy;
+
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "disputed_by_id")
+    private User disputedBy;
+
+    @Column(name = "disputed_at")
+    private LocalDateTime disputedAt;
+
+    @Column(name = "dispute_reason", length = 500)
+    private String disputeReason;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "result_source", length = 25)
+    private MatchResultSource resultSource;
 
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;

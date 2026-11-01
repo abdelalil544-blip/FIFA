@@ -1,5 +1,7 @@
 package com.example.FIFA.match.dto;
 
+import com.example.FIFA.match.enums.MatchResultActionType;
+import com.example.FIFA.match.enums.MatchStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,6 +24,9 @@ public class MatchResultHistoryResponse {
     private Integer previousScorePlayer2;
     private Integer newScorePlayer1;
     private Integer newScorePlayer2;
+    private MatchStatus previousStatus;
+    private MatchStatus newStatus;
+    private MatchResultActionType actionType;
     private UUID changedById;
     private String changedByUsername;
     private String reason;
