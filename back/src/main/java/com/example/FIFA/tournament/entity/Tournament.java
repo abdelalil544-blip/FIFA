@@ -1,6 +1,7 @@
 package com.example.FIFA.tournament.entity;
 
 import com.example.FIFA.player.enums.Platform;
+import com.example.FIFA.tournament.enums.RoundRobinFormat;
 import com.example.FIFA.tournament.enums.TournamentFormat;
 import com.example.FIFA.tournament.enums.TournamentStatus;
 import com.example.FIFA.user.entity.User;
@@ -72,6 +73,10 @@ public class Tournament {
     @Column(name = "status", nullable = false, length = 30)
     private TournamentStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "round_robin_format", length = 30)
+    private RoundRobinFormat roundRobinFormat;
+
     @Column(name = "max_players", nullable = false)
     private Integer maxPlayers;
 
@@ -108,6 +113,9 @@ public class Tournament {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.roundRobinFormat == null) {
+            this.roundRobinFormat = RoundRobinFormat.SINGLE_ROUND_ROBIN;
+        }
     }
 
     @PreUpdate

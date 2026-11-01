@@ -1,6 +1,7 @@
 package com.example.FIFA.tournament.dto;
 
 import com.example.FIFA.player.enums.Platform;
+import com.example.FIFA.tournament.enums.RoundRobinFormat;
 import com.example.FIFA.tournament.enums.TournamentFormat;
 import com.example.FIFA.tournament.enums.TournamentStatus;
 import lombok.AllArgsConstructor;
@@ -25,6 +26,7 @@ public class TournamentResponse {
     private String gameTitle;
     private Platform platform;
     private TournamentFormat format;
+    private RoundRobinFormat roundRobinFormat;
     private TournamentStatus status;
     private Integer maxPlayers;
     private Integer playersPerGroup;

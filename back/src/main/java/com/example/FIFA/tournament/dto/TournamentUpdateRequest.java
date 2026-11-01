@@ -1,6 +1,7 @@
 package com.example.FIFA.tournament.dto;
 
 import com.example.FIFA.player.enums.Platform;
+import com.example.FIFA.tournament.enums.RoundRobinFormat;
 import com.example.FIFA.tournament.enums.TournamentFormat;
 import com.example.FIFA.tournament.enums.TournamentStatus;
 import jakarta.validation.constraints.Positive;
@@ -32,6 +33,8 @@ public class TournamentUpdateRequest {
     private Platform platform;
 
     private TournamentFormat format;
+
+    private RoundRobinFormat roundRobinFormat;
 
     private TournamentStatus status;
 
