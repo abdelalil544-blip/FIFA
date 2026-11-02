@@ -18,6 +18,7 @@
 - **Phase 7 - résultats** : Validation métier côté service avec contrôle des permissions, historiques immuables et règles de forfeit documentées.
 - **Traçabilité & Historique** : Journalisation complète des modifications de scores (`MatchResultHistory`).
 - **Architecture DTO & MapStruct** : Séparation stricte entre entités de persistance et modèles d'échange DTO, avec validation Bean Validation (`@Valid`) au niveau des DTOs.
+- **Phase 8 / 9** : Classements par groupe, statistiques du tournoi, qualification automatique et arborescence des playoffs.
 
 ---
 
