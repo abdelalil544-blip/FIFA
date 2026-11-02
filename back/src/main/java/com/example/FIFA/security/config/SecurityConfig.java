@@ -55,6 +55,7 @@ public class SecurityConfig {
                         // Endpoints publics d'authentification et OAuth2
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs", "/webjars/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
                         // Consultation publique des tournois, groupes et matchs
