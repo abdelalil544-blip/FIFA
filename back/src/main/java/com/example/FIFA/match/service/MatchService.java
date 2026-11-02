@@ -15,6 +15,7 @@ import com.example.FIFA.match.enums.MatchResultActionType;
 import com.example.FIFA.match.enums.MatchResultSource;
 import com.example.FIFA.match.enums.MatchStage;
 import com.example.FIFA.match.enums.MatchStatus;
+import com.example.FIFA.match.enums.NextMatchSlot;
 import com.example.FIFA.match.mapper.MatchMapper;
 import com.example.FIFA.match.repository.MatchRepository;
 import com.example.FIFA.match.repository.MatchResultHistoryRepository;
@@ -232,6 +233,7 @@ public class MatchService {
         match.setWinner(determineWinner(match));
         match.setResultSource(MatchResultSource.PLAYER_SUBMISSION);
         matchRepository.save(match);
+        advanceWinnerToNextMatch(match);
 
         createHistory(match, actingUser, previousStatus, MatchStatus.COMPLETED,
                 MatchResultActionType.CONFIRMATION, "Confirmed by the opposing player.",
@@ -304,6 +306,7 @@ public class MatchService {
             match.setConfirmedAt(LocalDateTime.now());
             match.setResultSource(MatchResultSource.ADMIN_CORRECTION);
             matchRepository.save(match);
+            advanceWinnerToNextMatch(match);
 
             createHistory(match, actingUser, previousStatus, MatchStatus.COMPLETED,
                     MatchResultActionType.ADMIN_CORRECTION, request.getReason(),
@@ -369,6 +372,7 @@ public class MatchService {
         match.setSubmittedBy(actingUser);
         match.setSubmittedAt(LocalDateTime.now());
         matchRepository.save(match);
+        advanceWinnerToNextMatch(match);
 
         createHistory(match, actingUser, previousStatus, MatchStatus.FORFEIT,
                 MatchResultActionType.FORFEIT, request.getReason() == null ? "Forfeit recorded." : request.getReason(),
@@ -506,6 +510,37 @@ public class MatchService {
         if (!isOrganizerOrAdmin(tournament, currentUser)) {
             throw new AccessDeniedException("Access denied: you must be the organizer of this tournament or an administrator.");
         }
+    }
+
+    private void advanceWinnerToNextMatch(Match match) {
+        if (match.getWinner() == null) {
+            return;
+        }
+
+        if (match.getNextMatch() == null) {
+            if (match.getStage() == MatchStage.FINAL) {
+                Tournament tournament = match.getTournament();
+                if (tournament != null) {
+                    tournament.setChampion(match.getWinner());
+                    tournament.setStatus(TournamentStatus.COMPLETED);
+                    tournamentRepository.save(tournament);
+                }
+            }
+            return;
+        }
+
+        Match nextMatch = match.getNextMatch();
+        if (match.getNextMatchSlot() == NextMatchSlot.PLAYER1) {
+            nextMatch.setPlayer1(match.getWinner());
+        } else if (match.getNextMatchSlot() == NextMatchSlot.PLAYER2) {
+            nextMatch.setPlayer2(match.getWinner());
+        }
+
+        if (nextMatch.getPlayer1() != null && nextMatch.getPlayer2() != null) {
+            nextMatch.setStatus(MatchStatus.SCHEDULED);
+        }
+
+        matchRepository.save(nextMatch);
     }
 
     private void rotatePlayers(List<Player> players) {
