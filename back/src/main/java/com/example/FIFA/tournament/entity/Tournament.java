@@ -1,5 +1,7 @@
 package com.example.FIFA.tournament.entity;
 
+import com.example.FIFA.player.entity.Player;
+import com.example.FIFA.player.entity.Player;
 import com.example.FIFA.player.enums.Platform;
 import com.example.FIFA.tournament.enums.RoundRobinFormat;
 import com.example.FIFA.tournament.enums.TournamentFormat;
@@ -85,6 +87,10 @@ public class Tournament {
 
     @Column(name = "qualifiers_per_group")
     private Integer qualifiersPerGroup;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "champion_id")
+    private Player champion;
 
     @Column(name = "registration_start", nullable = false)
     private LocalDateTime registrationStart;

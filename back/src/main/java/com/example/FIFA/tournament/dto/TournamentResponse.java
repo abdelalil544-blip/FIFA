@@ -31,6 +31,8 @@ public class TournamentResponse {
     private Integer maxPlayers;
     private Integer playersPerGroup;
     private Integer qualifiersPerGroup;
+    private UUID championId;
+    private String championGamertag;
     private LocalDateTime registrationStart;
     private LocalDateTime registrationEnd;
     private LocalDateTime startDate;

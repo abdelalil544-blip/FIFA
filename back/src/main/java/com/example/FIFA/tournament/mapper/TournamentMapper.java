@@ -20,6 +20,8 @@ public interface TournamentMapper {
 
     @Mapping(target = "organizerId", source = "organizer.id")
     @Mapping(target = "organizerUsername", source = "organizer.username")
+    @Mapping(target = "championId", source = "champion.id")
+    @Mapping(target = "championGamertag", source = "champion.gamertag")
     TournamentResponse toResponse(Tournament entity);
 
     @Mapping(target = "id", ignore = true)
