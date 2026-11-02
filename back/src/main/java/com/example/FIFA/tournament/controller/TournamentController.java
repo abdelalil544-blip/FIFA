@@ -1,10 +1,14 @@
 package com.example.FIFA.tournament.controller;
 
 import com.example.FIFA.common.response.PageResponse;
+import com.example.FIFA.match.entity.Match;
 import com.example.FIFA.player.enums.Platform;
 import com.example.FIFA.security.user.CustomUserDetails;
+import com.example.FIFA.tournament.dto.GroupStandingResponse;
+import com.example.FIFA.tournament.dto.PlayerTournamentStatisticsResponse;
 import com.example.FIFA.tournament.dto.TournamentCreateRequest;
 import com.example.FIFA.tournament.dto.TournamentResponse;
+import com.example.FIFA.tournament.dto.TournamentStatisticsResponse;
 import com.example.FIFA.tournament.dto.TournamentUpdateRequest;
 import com.example.FIFA.tournament.enums.TournamentFormat;
 import com.example.FIFA.tournament.enums.TournamentStatus;
@@ -30,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -68,6 +73,35 @@ public class TournamentController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{tournamentId}/groups/{groupId}/standings")
+    public ResponseEntity<List<GroupStandingResponse>> getGroupStandings(
+            @PathVariable UUID tournamentId,
+            @PathVariable UUID groupId,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        List<GroupStandingResponse> response = tournamentService.getGroupStandings(tournamentId, groupId, currentUser);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{tournamentId}/players/{playerId}/statistics")
+    public ResponseEntity<PlayerTournamentStatisticsResponse> getPlayerTournamentStatistics(
+            @PathVariable UUID tournamentId,
+            @PathVariable UUID playerId,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        PlayerTournamentStatisticsResponse response = tournamentService.getPlayerTournamentStatistics(tournamentId, playerId, currentUser);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{tournamentId}/statistics")
+    public ResponseEntity<TournamentStatisticsResponse> getTournamentStatistics(
+            @PathVariable UUID tournamentId,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        TournamentStatisticsResponse response = tournamentService.getTournamentStatistics(tournamentId, currentUser);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
     public ResponseEntity<TournamentResponse> updateTournament(
@@ -97,6 +131,31 @@ public class TournamentController {
     ) {
         TournamentResponse response = tournamentService.closeRegistrations(id, currentUser);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{tournamentId}/playoffs/generate")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
+    public ResponseEntity<List<Match>> generatePlayoffs(
+            @PathVariable UUID tournamentId,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        return ResponseEntity.ok(tournamentService.generatePlayoffs(tournamentId, currentUser));
+    }
+
+    @GetMapping("/{tournamentId}/playoffs/bracket")
+    public ResponseEntity<List<Match>> getPlayoffBracket(
+            @PathVariable UUID tournamentId,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        return ResponseEntity.ok(tournamentService.getPlayoffBracket(tournamentId, currentUser));
+    }
+
+    @GetMapping("/{tournamentId}/playoffs/champion")
+    public ResponseEntity<TournamentResponse> getChampion(
+            @PathVariable UUID tournamentId,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        return ResponseEntity.ok(tournamentService.getChampion(tournamentId, currentUser));
     }
 
     @DeleteMapping("/{id}")
