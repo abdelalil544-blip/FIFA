@@ -342,7 +342,7 @@ public class MatchService {
         if (match.getStatus() == MatchStatus.COMPLETED || match.getStatus() == MatchStatus.FORFEIT || match.getStatus() == MatchStatus.CANCELLED) {
             throw new BusinessException("A completed or already processed result cannot be changed.");
         }
-        if (!isParticipant(match, request.getForfeitingPlayerId()) || !isParticipant(match, request.getBeneficiaryPlayerId())) {
+        if (!isMatchPlayer(match, request.getForfeitingPlayerId()) || !isMatchPlayer(match, request.getBeneficiaryPlayerId())) {
             throw new BusinessException("The forfeit must involve players from this match.");
         }
 
@@ -451,6 +451,14 @@ public class MatchService {
         }
         return (match.getPlayer1() != null && match.getPlayer1().getUser() != null && match.getPlayer1().getUser().getId().equals(userId))
                 || (match.getPlayer2() != null && match.getPlayer2().getUser() != null && match.getPlayer2().getUser().getId().equals(userId));
+    }
+
+    private boolean isMatchPlayer(Match match, UUID playerId) {
+        if (playerId == null) {
+            return false;
+        }
+        return (match.getPlayer1() != null && match.getPlayer1().getId().equals(playerId))
+                || (match.getPlayer2() != null && match.getPlayer2().getId().equals(playerId));
     }
 
     private boolean isOpponentOfSubmittedPlayer(Match match, UUID userId) {
