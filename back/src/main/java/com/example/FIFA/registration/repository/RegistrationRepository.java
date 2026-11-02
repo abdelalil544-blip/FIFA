@@ -26,6 +26,8 @@ public interface RegistrationRepository extends JpaRepository<Registration, UUID
 
     Page<Registration> findByPlayerIdAndStatus(UUID playerId, RegistrationStatus status, Pageable pageable);
 
+    List<Registration> findByTournamentId(UUID tournamentId);
+
     List<Registration> findByTournamentIdAndStatus(UUID tournamentId, RegistrationStatus status);
 
     long countByTournamentIdAndStatus(UUID tournamentId, RegistrationStatus status);
